@@ -16,6 +16,7 @@ a:focus-visible { outline: 3px solid #7CC4E6; outline-offset: 3px; }
 .panels { display: grid; grid-template-columns: 1.15fr 1fr; border: 4px solid #121417; background: #121417; gap: 4px; }
 .panel { position: relative; background: #F2C919; padding: clamp(22px, 3vw, 36px); box-sizing: border-box; min-width: 0; }
 .panel .no { position: absolute; top: -4px; left: -4px; width: 52px; height: 52px; border-radius: 50%; background: #FBF3E2; border: 3px solid #121417; display: flex; align-items: center; justify-content: center; font-family: 'Dela Gothic One', sans-serif; font-size: 26px; color: #121417; z-index: 2; }
+.panel .tag { position: absolute; top: 14px; left: 68px; z-index: 2; background: #121417; color: #F2C919; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; padding: 4px 12px; border-radius: 999px; }
 .panel h3 { margin: 0 0 10px 0; font-weight: 700; font-size: clamp(20px, 2.4vw, 26px); line-height: 1.4; color: #121417; }
 .panel p { margin: 0; font-size: 16px; line-height: 1.85; color: #121417; }
 .panel:not(.p-photo) { padding-top: 72px; }
@@ -102,7 +103,7 @@ a:focus-visible { outline: 3px solid #7CC4E6; outline-offset: 3px; }
     </div>
     <div class="panels">
       <div class="panel p-photo">
-        <span class="no">1</span>
+        <span class="no">1</span><span class="tag">1塁　麺</span>
         <img loading="lazy" decoding="async" src="img/napolitan.jpg" alt="白い皿に盛られたナポリタン">
         <div class="txt" style="background: #F2C919">
           <h3>［仮］まずは麺から。</h3>
@@ -110,17 +111,17 @@ a:focus-visible { outline: 3px solid #7CC4E6; outline-offset: 3px; }
         </div>
       </div>
       <div class="panel">
-        <span class="no">2</span>
+        <span class="no">2</span><span class="tag">2塁　ソース</span>
         <h3>［仮］ソースは炒めて仕上げる。</h3>
         <p>［仮］ケチャップの炒め方、隠し味、味の決め手を書きます。</p>
       </div>
       <div class="panel">
-        <span class="no">3</span>
+        <span class="no">3</span><span class="tag">3塁　具材</span>
         <h3>［仮］具はあの定番で。</h3>
         <p>［仮］ウインナー、玉ねぎ、ピーマンなど、具材の選び方を書きます。</p>
       </div>
       <div class="panel p-wide">
-        <span class="no">4</span>
+        <span class="no">4</span><span class="tag">ホーム　仕上げ</span>
         <h3>［仮］熱々のうちに、どうぞ。</h3>
         <p>［仮］盛りつけ、皿、食べ方のおすすめ、価格などを書きます。</p>
       </div>
@@ -201,5 +202,49 @@ a:focus-visible { outline: 3px solid #7CC4E6; outline-offset: 3px; }
 </footer>
 
 </div>
+<!-- 一周の進み具合（スクロール連動） -->
+<style>
+#runner-nav { position: fixed; left: 12px; bottom: 12px; z-index: 50; width: 104px; padding: 6px 6px 4px; background: rgba(14,18,22,0.82); border: 1px solid rgba(244,241,234,0.25); border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity .3s; text-align: center; }
+#runner-nav.on { opacity: 1; pointer-events: auto; }
+#runner-nav svg { display: block; width: 100%; height: auto; overflow: visible; }
+#runner-nav .b { fill: #1E2A33; stroke: #F4F1EA; stroke-width: 2; transition: fill .2s; }
+#runner-nav .b.hit { fill: #F2C919; }
+#runner-nav .msg { font-size: 11px; font-weight: 700; color: #F2C919; min-height: 16px; letter-spacing: 0.08em; }
+@media (min-width: 900px) { #runner-nav { width: 132px; left: 20px; bottom: 20px; } }
+</style>
+<nav id="runner-nav" aria-label="ページの進み具合（ベースをタップでその場所へ）">
+  <svg viewBox="0 0 120 120" role="img" aria-label="ダイヤモンド。ランナーがスクロールに合わせて進む">
+    <polygon points="60,104 104,60 60,16 16,60" fill="none" stroke="#F4F1EA" stroke-width="2" stroke-dasharray="4 4"/>
+    <a href="#interior" aria-label="1塁 入口"><circle class="b" id="rb1" cx="104" cy="60" r="9"/></a>
+    <a href="#kodawari" aria-label="2塁 ナポリタン"><circle class="b" id="rb2" cx="60" cy="16" r="9"/></a>
+    <a href="#owner" aria-label="3塁 店主"><circle class="b" id="rb3" cx="16" cy="60" r="9"/></a>
+    <a href="#info" aria-label="ホーム 店舗情報"><polygon class="b" id="rb4" points="50,96 70,96 70,104 60,114 50,104"/></a>
+    <circle id="rrun" cx="60" cy="104" r="7" fill="#D4262D" stroke="#fff" stroke-width="2"/>
+  </svg>
+  <div class="msg" id="rmsg" aria-live="polite"></div>
+</nav>
+<script>
+(function(){
+  var nav=document.getElementById('runner-nav'), run=document.getElementById('rrun'), msg=document.getElementById('rmsg');
+  var pts=[[60,104],[104,60],[60,16],[16,60],[60,104]];
+  var ids=['interior','kodawari','owner','info'];
+  var bs=[1,2,3,4].map(function(i){return document.getElementById('rb'+i);});
+  function top(id){var e=document.getElementById(id);return e?e.getBoundingClientRect().top+window.scrollY:0;}
+  function update(){
+    var y=window.scrollY+window.innerHeight*0.55;
+    var a=[0].concat(ids.map(top));
+    var t=0;
+    for(var i=0;i<4;i++){ if(y>=a[i+1]){t=i+1;} else { t=i+(y-a[i])/Math.max(1,(a[i+1]-a[i])); break; } }
+    t=Math.max(0,Math.min(4,t));
+    var k=Math.min(3,Math.floor(t)), f=t-k;
+    var x=pts[k][0]+(pts[k+1][0]-pts[k][0])*f, yy=pts[k][1]+(pts[k+1][1]-pts[k][1])*f;
+    run.setAttribute('cx',x); run.setAttribute('cy',yy);
+    bs.forEach(function(b,i){ b.classList.toggle('hit', t>=i+0.98); });
+    msg.textContent = t>=3.95 ? 'ホームイン！' : '';
+    nav.classList.toggle('on', window.scrollY>window.innerHeight*0.5);
+  }
+  window.addEventListener('scroll',update,{passive:true}); window.addEventListener('resize',update); update();
+})();
+</script>
 </body>
 </html>
